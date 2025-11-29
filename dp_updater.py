@@ -4,7 +4,6 @@ import os
 import json
 import datetime
 import re
-import time
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Date, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
@@ -156,51 +155,51 @@ def ask_gemini(text):
     try:
         return response.candidates[0].content.parts[0].text.strip()
     except:
-        print("❌ Gemini returned no text. Reason:", response.candidates[0].finish_reason)
+        print("❌ Gemini returned no text.")
         return ""
 
 
 # ----------------------------------------
-# INSERT INTO DB
+# INSERT INTO DB  (FIXED WITH engine.begin)
 # ----------------------------------------
 def insert_jobs(jobs: list):
-    conn = engine.connect()
     today = datetime.date.today()
     count = 0
 
-    for j in jobs:
-        company = j.get("company_name", "")
-        logo = get_company_logo(company)
+    with engine.begin() as conn:   # <-- AUTO COMMIT FIX
+        for j in jobs:
+            company = j.get("company_name", "")
+            logo = get_company_logo(company)
 
-        row = {
-            "logo_link": logo,
-            "job_title": j.get("job_title", "")[:512],
-            "batch": j.get("batch", "any"),
-            "location": j.get("location", "Remote"),
-            "qualification": j.get("qualification", "Any Graduate"),
-            "salary": j.get("salary", "Not Disclosed"),
-            "posted_date": today,
-            "raw": j,
-        }
+            row = {
+                "logo_link": logo,
+                "job_title": j.get("job_title", "")[:512],
+                "batch": j.get("batch", "any"),
+                "location": j.get("location", "Remote"),
+                "qualification": j.get("qualification", "Any Graduate"),
+                "salary": j.get("salary", "Not Disclosed"),
+                "posted_date": today,
+                "raw": j,
+            }
 
-        try:
-            conn.execute(job_postings.insert().values(**row))
-            count += 1
-        except IntegrityError:
-            pass
+            try:
+                conn.execute(job_postings.insert().values(**row))
+                count += 1
+            except IntegrityError:
+                pass
 
-    conn.close()
     print(f"[OK] Inserted: {count} new jobs")
 
 
 # ----------------------------------------
-# DELETE OLD DATA
+# DELETE OLD DATA (FIXED WITH engine.begin)
 # ----------------------------------------
 def delete_old():
     cutoff = datetime.date.today() - datetime.timedelta(days=30)
-    conn = engine.connect()
-    conn.execute(job_postings.delete().where(job_postings.c.posted_date < cutoff))
-    conn.close()
+
+    with engine.begin() as conn:   # <-- AUTO COMMIT FIX
+        conn.execute(job_postings.delete().where(job_postings.c.posted_date < cutoff))
+
     print("[OK] Old data deleted")
 
 
