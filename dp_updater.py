@@ -163,10 +163,12 @@ def ask_gemini(text):
 # INSERT INTO DB  (FIXED WITH engine.begin)
 # ----------------------------------------
 def insert_jobs(jobs: list):
+    conn = engine.connect()
+    trans = conn.begin()  # Start transaction explicitly
     today = datetime.date.today()
     count = 0
 
-    with engine.begin() as conn:   # <-- AUTO COMMIT FIX
+    try:
         for j in jobs:
             company = j.get("company_name", "")
             logo = get_company_logo(company)
@@ -187,8 +189,14 @@ def insert_jobs(jobs: list):
                 count += 1
             except IntegrityError:
                 pass
-
-    print(f"[OK] Inserted: {count} new jobs")
+        
+        trans.commit()  # ✅ Commit the transaction
+        print(f"[OK] Inserted: {count} new jobs")
+    except Exception as e:
+        trans.rollback()  # Rollback on error
+        print(f"❌ Insert failed: {e}")
+    finally:
+        conn.close()
 
 
 # ----------------------------------------
@@ -196,13 +204,20 @@ def insert_jobs(jobs: list):
 # ----------------------------------------
 def delete_old():
     cutoff = datetime.date.today() - datetime.timedelta(days=30)
-
-    with engine.begin() as conn:   # <-- AUTO COMMIT FIX
-        conn.execute(job_postings.delete().where(job_postings.c.posted_date < cutoff))
-
-    print("[OK] Old data deleted")
-
-
+    conn = engine.connect()
+    trans = conn.begin()  # Start transaction explicitly
+    
+    try:
+        result = conn.execute(
+            job_postings.delete().where(job_postings.c.posted_date < cutoff)
+        )
+        trans.commit()  # ✅ Commit the transaction
+        print(f"[OK] Deleted {result.rowcount} old records")
+    except Exception as e:
+        trans.rollback()
+        print(f"❌ Delete failed: {e}")
+    finally:
+        conn.close()
 # ----------------------------------------
 # MAIN
 # ----------------------------------------
