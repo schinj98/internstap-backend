@@ -74,23 +74,5 @@ async def main():
         group_id = os.getenv(group_key)
         await scrape_group(group_id, i)
 
-    print("\n🚀 Running email extractor...")
-
-    CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-    extractor_dir = os.path.abspath(os.path.join(CURRENT_DIR, "..", "email_extractor"))
-    extractor_path = os.path.join(extractor_dir, "app.py")
-
-    print("CURRENT_DIR =", CURRENT_DIR)
-    print("EXTRACTOR_DIR =", extractor_dir)
-    print("EXTRACTOR_PATH =", extractor_path)
-
-    try:
-        subprocess.run([PY, extractor_path], cwd=extractor_dir, check=True)
-        print("✅ Email extractor done.")
-    except Exception as e:
-        print("❌ Extractor error:", e)
-
-
 with client:
     client.loop.run_until_complete(main())
