@@ -2,16 +2,26 @@ from flask import Flask, jsonify, request
 import psycopg2
 import os
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 load_dotenv("config.env")
 
 app = Flask(__name__)
 
+# ---- Load allowed origins from config.env ----
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+
+# Apply CORS with env-based origins
+CORS(app, resources={r"/*": {"origins": allowed_origins}})
+
+# ---- Database ----
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
 
+# ---- API ----
 @app.get("/jobs")
 def get_jobs():
     page = int(request.args.get("page", 1))
