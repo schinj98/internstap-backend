@@ -78,6 +78,7 @@ Each JSON object MUST contain:
 - salary
 - apply_link
 - logo_url
+- more_details
 
 IMPORTANT LOGO RULE:
 - Find the best possible company logo URL by *simulating a Google search mentally*.
@@ -99,6 +100,7 @@ Rules:
 - If apply link FOUND → return as-is
 - If apply link is EMAIL (example: careers@company.com) → convert to "mailto:careers@company.com"
 - If apply link missing → "" (empty string)
+- fetch more details from the data for every job postings, and if not available add few details or points for that specific company about roles, culture, eligibility, and required skills.
 
 Return STRICT JSON array like:
 
@@ -111,7 +113,9 @@ Return STRICT JSON array like:
     "qualification": "B.Tech",
     "salary": "INR 10-20 LPA",
     "apply_link": "https://google.com/careers/job",
-    "logo_url": "https://logo.clearbit.com/google.com"
+    "logo_url": "https://logo.clearbit.com/google.com",
+    "more_details": "Google is well known software company and most of it reviews are positive. it hires freshers as well experienced. The required skills for this specific job, eligibility, etc."
+
   }}
 ]
 
@@ -181,7 +185,7 @@ def insert_jobs(jobs: list):
 
             # Convert email → mailto
             if apply_link and "@" in apply_link and not apply_link.startswith("http"):
-                apply_link = f"mailto:{apply_link}"
+                apply_link = f"{apply_link}"
 
             row = {
                 "logo_link": logo,
@@ -192,6 +196,7 @@ def insert_jobs(jobs: list):
                 "salary": j.get("salary", "Not Disclosed"),
                 "apply_link": apply_link,
                 "posted_date": today,
+                "more_details": more_details,
                 "raw": j,
             }
 
