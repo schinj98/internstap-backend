@@ -234,6 +234,18 @@ def delete_old():
         print(f"❌ Delete failed: {e}")
     finally:
         conn.close()
+
+# clearing all_messages file func
+# ----------------------------------------
+# CLEAR ALL_MESSAGES AFTER PROCESSING
+# ----------------------------------------
+def clear_all_messages(path):
+    try:
+        open(path, "w").close()  # truncate file
+        print(f"[OK] Cleared: {path}")
+    except Exception as e:
+        print(f"❌ Error clearing file: {e}")
+
 # ----------------------------------------
 # MAIN
 # ----------------------------------------
@@ -278,6 +290,10 @@ def main():
         print("✔ DONE")
     else:
         print("❌ No jobs extracted.")
+    
+    # clear the all_messages file
+    clear_all_messages(ALL_MESSAGES_PATH)
+
 
 
 if __name__ == "__main__":
