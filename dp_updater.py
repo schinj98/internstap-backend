@@ -50,6 +50,7 @@ job_postings = Table(
     Column("qualification", Text),
     Column("salary", String(128)),
     Column("apply_link", String(1024)),
+    Column("more_details", String(5000)),
     Column("posted_date", Date, nullable=False),
     Column("raw", JSONB)
 )
@@ -79,6 +80,7 @@ Each JSON object MUST contain:
 - apply_link
 - logo_url
 - more_details
+- posting_date
 
 IMPORTANT LOGO RULE:
 - Find the best possible company logo URL by *simulating a Google search mentally*.
@@ -94,14 +96,14 @@ Rules:
 - If company unknown → ""
 - If location missing → "Remote"
 - If qualification missing → "Any Graduate"
-- If salary missing → "INR 3-6 LPA"
-- If batch missing → "current year - 1"
+- If salary missing → "try to find that company's average salary for that role" or "INR 3-6 LPA"
+- If batch missing → "current year - 1" if experieced role or if intern give current year or multiple years
 - job_title should be simple & clean
 - If apply link FOUND → return as-is
 - If apply link is EMAIL (example: careers@company.com) → convert to "mailto:careers@company.com"
 - If apply link missing → "" (empty string)
 - fetch more details from the data for every job postings, and if not available add few details or points for that specific company about roles, culture, eligibility, and required skills.
-
+- for posting_date add the current time indian standard time of current and in each jobs make at least difference of 10-5 minutes and todays date in the standard format as date-month-year-time
 Return STRICT JSON array like:
 
 [
@@ -114,7 +116,8 @@ Return STRICT JSON array like:
     "salary": "INR 10-20 LPA",
     "apply_link": "https://google.com/careers/job",
     "logo_url": "https://logo.clearbit.com/google.com",
-    "more_details": "Google is well known software company and most of it reviews are positive. it hires freshers as well experienced. The required skills for this specific job, eligibility, etc."
+    "more_details": "Google is well known software company and most of it reviews are positive. it hires freshers as well experienced. The required skills for this specific job, eligibility, etc.",
+    "posting_date": "date-month-year-time"
 
   }}
 ]
@@ -172,21 +175,38 @@ def ask_gemini(text):
 # ----------------------------------------
 def insert_jobs(jobs: list):
     conn = engine.connect()
-    trans = conn.begin()  # Start transaction explicitly
-    today = datetime.date.today()
+    trans = conn.begin()
     count = 0
 
     try:
         for j in jobs:
+
+            # --------------------------
+            # Extract fields from AI JSON
+            # --------------------------
             logo = j.get("logo_url", "")
-
-
             apply_link = j.get("apply_link", "")
+            more_details = j.get("more_details", "")
 
-            # Convert email → mailto
+            # FIX 1 → email ko mailto nahi banaya tha
             if apply_link and "@" in apply_link and not apply_link.startswith("http"):
-                apply_link = f"{apply_link}"
+                apply_link = f"mailto:{apply_link}"
 
+            # FIX 2 → AI se aaya posting_date use karna tha
+            posting_date_raw = j.get("posting_date", "")
+
+            try:
+                # convert to proper python datetime (DD-MM-YYYY-HH:MM format expected)
+                posting_date = datetime.datetime.strptime(
+                    posting_date_raw.split(" ")[0],  # date-time split
+                    "%d-%m-%Y"
+                ).date()
+            except:
+                posting_date = datetime.date.today()  # fallback
+
+            # --------------------------
+            # Final row
+            # --------------------------
             row = {
                 "logo_link": logo,
                 "job_title": j.get("job_title", "")[:512],
@@ -195,22 +215,21 @@ def insert_jobs(jobs: list):
                 "qualification": j.get("qualification", "Any Graduate"),
                 "salary": j.get("salary", "Not Disclosed"),
                 "apply_link": apply_link,
-                "posted_date": today,
-                "more_details": more_details,
+                "posted_date": posting_date,     # <-- FIXED
+                "more_details": more_details,    # <-- FIXED
                 "raw": j,
             }
-
 
             try:
                 conn.execute(job_postings.insert().values(**row))
                 count += 1
             except IntegrityError:
                 pass
-        
-        trans.commit()  # ✅ Commit the transaction
+
+        trans.commit()
         print(f"[OK] Inserted: {count} new jobs")
     except Exception as e:
-        trans.rollback()  # Rollback on error
+        trans.rollback()
         print(f"❌ Insert failed: {e}")
     finally:
         conn.close()
