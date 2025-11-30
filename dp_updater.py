@@ -263,7 +263,7 @@ def main():
     all_jobs = []
 
     for idx, chunk in enumerate(chunks):
-        print(f"\n🔹 Processing chunk {idx+1}/{len(chunks)}")
+        print(f"\n🔹 Processing the chunk {idx+1}/{len(chunks)}")
         raw = ask_gemini(chunk)
         if not raw:
             continue
