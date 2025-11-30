@@ -49,6 +49,7 @@ job_postings = Table(
     Column("location", String(256)),
     Column("qualification", Text),
     Column("salary", String(128)),
+    Column("apply_link", String(1024)),
     Column("posted_date", Date, nullable=False),
     Column("raw", JSONB)
 )
@@ -91,6 +92,7 @@ Each JSON object MUST contain:
 - location
 - qualification
 - salary
+- apply_link   <-- NEW FIELD REQUIRED
 
 Rules:
 - If company unknown → ""
@@ -98,9 +100,13 @@ Rules:
 - If qualification missing → "Any Graduate"
 - If salary missing → "INR 3-6 LPA"
 - If batch missing → "any"
-- job_title small & clean
+- job_title should be simple & clean
+- If apply link FOUND → return as-is
+- If apply link is EMAIL (example: careers@company.com) → convert to "mailto:careers@company.com"
+- If apply link missing → "" (empty string)
 
-JSON example:
+Return STRICT JSON array like:
+
 [
   {{
     "company_name": "Google",
@@ -108,7 +114,8 @@ JSON example:
     "batch": "2022",
     "location": "Bangalore",
     "qualification": "B.Tech",
-    "salary": "INR 10-20 LPA"
+    "salary": "INR 10-20 LPA",
+    "apply_link": "https://google.com/careers/job"
   }}
 ]
 
@@ -116,6 +123,7 @@ Now extract from:
 
 {text}
 """
+
 
 
 # ----------------------------------------
@@ -173,6 +181,12 @@ def insert_jobs(jobs: list):
             company = j.get("company_name", "")
             logo = get_company_logo(company)
 
+            apply_link = j.get("apply_link", "")
+
+            # Convert email → mailto
+            if apply_link and "@" in apply_link and not apply_link.startswith("http"):
+                apply_link = f"mailto:{apply_link}"
+
             row = {
                 "logo_link": logo,
                 "job_title": j.get("job_title", "")[:512],
@@ -180,9 +194,11 @@ def insert_jobs(jobs: list):
                 "location": j.get("location", "Remote"),
                 "qualification": j.get("qualification", "Any Graduate"),
                 "salary": j.get("salary", "Not Disclosed"),
+                "apply_link": apply_link,
                 "posted_date": today,
                 "raw": j,
             }
+
 
             try:
                 conn.execute(job_postings.insert().values(**row))
