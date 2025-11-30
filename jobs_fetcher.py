@@ -23,7 +23,7 @@ def get_jobs():
 
     cur.execute("""
         SELECT id, logo_link, job_title, batch, location,
-               qualification, salary, posted_date, raw
+               qualification, salary, apply_link, posted_date, raw
         FROM job_postings
         ORDER BY posted_date DESC
         LIMIT %s OFFSET %s
@@ -35,8 +35,7 @@ def get_jobs():
     total_jobs = cur.fetchone()[0]
 
     cols = [desc[0] for desc in cur.description]
-
-    data = [dict(zip(cols, row)) for row in rows]
+    jobs = [dict(zip(cols, row)) for row in rows]
 
     cur.close()
     conn.close()
@@ -45,5 +44,5 @@ def get_jobs():
         "page": page,
         "limit": limit,
         "total": total_jobs,
-        "jobs": data
+        "jobs": jobs
     })
