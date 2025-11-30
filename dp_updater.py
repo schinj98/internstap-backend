@@ -294,7 +294,7 @@ def main():
         print("all_messages.txt not found.")
         return
 
-    chunks = read_chunks(ALL_MESSAGES_PATH, lines_per_chunk=10)
+    chunks = read_chunks(ALL_MESSAGES_PATH, lines_per_chunk=100)
     print(f"Total chunks: {len(chunks)}")
 
     all_jobs = []
