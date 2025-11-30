@@ -59,22 +59,6 @@ def ensure_tables():
     print("[OK] Database table ensured")
 
 
-# ----------------------------------------
-# LOGO FETCHER (Clearbit)
-# ----------------------------------------
-def get_company_logo(company_name: str) -> str:
-    if not company_name:
-        return ""
-    clean = re.sub(r"[^a-zA-Z0-9]", "", company_name.replace(" ", "")).lower()
-    guesses = [f"{clean}.com", f"{clean}.in", f"{clean}.co", f"{clean}.io"]
-    for d in guesses:
-        url = f"https://logo.clearbit.com/{d}"
-        try:
-            if requests.head(url, timeout=4).status_code == 200:
-                return url
-        except:
-            pass
-    return ""
 
 
 # ----------------------------------------
@@ -92,14 +76,25 @@ Each JSON object MUST contain:
 - location
 - qualification
 - salary
-- apply_link   <-- NEW FIELD REQUIRED
+- apply_link
+- logo_url
+
+IMPORTANT LOGO RULE:
+- Find the best possible company logo URL by *simulating a Google search mentally*.
+- Prefer official website favicon URLs.
+- If unknown → return "".
+- Do NOT return base64 images.
+- Do NOT return search result pages.
+- Only direct PNG/JPG/ICO/WEBP URL or known logo endpoint such as:
+  - https://logo.clearbit.com/<domain>
+  - https://<company_website>/favicon.ico
 
 Rules:
 - If company unknown → ""
 - If location missing → "Remote"
 - If qualification missing → "Any Graduate"
 - If salary missing → "INR 3-6 LPA"
-- If batch missing → "any"
+- If batch missing → "current year - 1"
 - job_title should be simple & clean
 - If apply link FOUND → return as-is
 - If apply link is EMAIL (example: careers@company.com) → convert to "mailto:careers@company.com"
@@ -115,7 +110,8 @@ Return STRICT JSON array like:
     "location": "Bangalore",
     "qualification": "B.Tech",
     "salary": "INR 10-20 LPA",
-    "apply_link": "https://google.com/careers/job"
+    "apply_link": "https://google.com/careers/job",
+    "logo_url": "https://logo.clearbit.com/google.com"
   }}
 ]
 
@@ -178,8 +174,8 @@ def insert_jobs(jobs: list):
 
     try:
         for j in jobs:
-            company = j.get("company_name", "")
-            logo = get_company_logo(company)
+            logo = j.get("logo_url", "")
+
 
             apply_link = j.get("apply_link", "")
 
@@ -293,8 +289,6 @@ def main():
     
     # clear the all_messages file
     clear_all_messages(ALL_MESSAGES_PATH)
-
-
 
 if __name__ == "__main__":
     main()
