@@ -21,10 +21,16 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
 
-# ---- API ----
+API_SECRET_KEY = os.getenv("API_SECRET_KEY")
+
 # ---- API ----
 @app.get("/jobs")
 def get_jobs():
+
+    api_key = request.headers.get('X-API-KEY')
+    if not api_key or api_key != API_SECRET_KEY:
+        # Return a 401 Unauthorized error
+        return jsonify({"error": "Unauthorized: Invalid or missing API Key"}), 401
     page = int(request.args.get("page", 1))
     limit = int(request.args.get("limit", 50))
     offset = (page - 1) * limit
