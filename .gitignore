@@ -1,3 +1,5 @@
 config.env
 .env
 *.env
+scraped_data
+groups

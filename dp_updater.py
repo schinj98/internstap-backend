@@ -8,7 +8,9 @@ from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, 
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
-import google.generativeai as genai
+# import google.generativeai as genai
+from groq import Groq
+
 import requests
 
 # -------------------------
@@ -22,16 +24,21 @@ else:
 # -------------------------
 # ENV VARIABLES
 # -------------------------
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/jobs_db")
 ALL_MESSAGES_PATH = os.getenv("ALL_MESSAGES_PATH", "./all_messages.txt")
 
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY missing in config.env")
+# if not GEMINI_API_KEY:
+#     raise RuntimeError("GEMINI_API_KEY missing in config.env")
 
 # Gemini Init
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash")
+# genai.configure(api_key=GEMINI_API_KEY)
+# model = genai.GenerativeModel("gemini-2.5-flash")
+
+# groq api
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=GROQ_API_KEY)
+
 
 # -------------------------
 # DATABASE SCHEMA
@@ -84,13 +91,7 @@ Each JSON object MUST contain:
 
 IMPORTANT LOGO RULE:
 - Find the best possible company logo URL by *simulating a Google search mentally*.
-- Prefer official website favicon URLs.
-- If unknown → return "".
-- Do NOT return base64 images.
-- Do NOT return search result pages.
-- Only direct PNG/JPG/ICO/WEBP URL or known logo endpoint such as:
-  - https://logo.clearbit.com/<domain>
-  - https://<company_website>/favicon.ico
+- or return "" if hard to find
 
 Rules:
 - If company unknown → ""
@@ -132,7 +133,7 @@ Now extract from:
 # ----------------------------------------
 # CHUNK READER
 # ----------------------------------------
-def read_chunks(path, lines_per_chunk=10):
+def read_chunks(path, lines_per_chunk=100):
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
@@ -154,20 +155,37 @@ def read_chunks(path, lines_per_chunk=10):
 # ----------------------------------------
 # SAFE GEMINI CALL
 # ----------------------------------------
-def ask_gemini(text):
-    response = model.generate_content(
-        contents=build_prompt(text),
-        generation_config=genai.types.GenerationConfig(
-            temperature=0.0,
-            max_output_tokens=6000,
-        )
-    )
+# def ask_gemini(text):
+#     response = model.generate_content(
+#         contents=build_prompt(text),
+#         generation_config=genai.types.GenerationConfig(
+#             temperature=0.0,
+#             max_output_tokens=6000,
+#         )
+#     )
+
+#     try:
+#         return response.candidates[0].content.parts[0].text.strip()
+#     except:
+#         print("❌ Gemini returned no text.")
+#         return ""
+
+# groq api call
+def ask_groq(text):
+    prompt = build_prompt(text)
 
     try:
-        return response.candidates[0].content.parts[0].text.strip()
-    except:
-        print("❌ Gemini returned no text.")
+        response = client.chat.completions.create(
+            model="llama-3.1-70b",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+            max_tokens=6000,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print("❌ Groq error:", e)
         return ""
+
 
 
 # ----------------------------------------
@@ -283,7 +301,8 @@ def main():
 
     for idx, chunk in enumerate(chunks):
         print(f"\n🔹 Processing the chunk {idx+1}/{len(chunks)}")
-        raw = ask_gemini(chunk)
+        # raw = ask_gemini(chunk)
+        raw = ask_groq(chunk)
         if not raw:
             continue
 
