@@ -53,14 +53,15 @@ job_postings = Table(
     Column("logo_link", String(1024)),
     Column("job_title", String(512), nullable=False),
     Column("batch", String(128)),
+    Column("company_name", Text),
     Column("location", String(256)),
     Column("qualification", Text),
     Column("salary", String(128)),
     Column("apply_link", String(1024)),
     Column("more_details", String(5000)),
-    Column("posted_date", Date, nullable=False),
-    Column("raw", JSONB)
+    Column("posted_date", Date, nullable=False)
 )
+
 
 def ensure_tables():
     metadata.create_all(engine)
@@ -101,7 +102,7 @@ Rules:
 - If batch missing → "current year - 1" if experieced role or if intern give current year or multiple years
 - job_title should be simple & clean
 - If apply link FOUND → return as-is
-- If apply link is EMAIL (example: careers@company.com) → convert to "mailto:careers@company.com"
+- If apply link is EMAIL (example: careers@company.com) → convert to "careers@company.com"
 - If apply link missing → "" (empty string)
 - fetch more details from the data for every job postings, and if not available add few details or points for that specific company about roles, culture, eligibility, and required skills.
 - for posting_date add the current time indian standard time of current and in each jobs make at least difference of 10-5 minutes and todays date in the standard format as date-month-year-time
@@ -110,16 +111,15 @@ Return STRICT JSON array like:
 [
   {{
     "company_name": "Google",
-    "job_title": "Software Engineer",
-    "batch": "2022",
-    "location": "Bangalore",
-    "qualification": "B.Tech",
+    "job_title": "Google is hiring Software Engineer ",
+    "batch": "2022/2025/2026",
+    "location": "Bangalore, india",
+    "qualification": "B.Tech / BCA / any Stream",
     "salary": "INR 10-20 LPA",
     "apply_link": "https://google.com/careers/job",
     "logo_url": "https://logo.clearbit.com/google.com",
     "more_details": "Google is well known software company and most of it reviews are positive. it hires freshers as well experienced. The required skills for this specific job, eligibility, etc.",
     "posting_date": "date-month-year-time"
-
   }}
 ]
 
@@ -229,14 +229,15 @@ def insert_jobs(jobs: list):
                 "logo_link": logo,
                 "job_title": j.get("job_title", "")[:512],
                 "batch": j.get("batch", "any"),
+                "company_name": j.get("company_name", ""),
                 "location": j.get("location", "Remote"),
                 "qualification": j.get("qualification", "Any Graduate"),
                 "salary": j.get("salary", "Not Disclosed"),
                 "apply_link": apply_link,
-                "posted_date": posting_date,     # <-- FIXED
-                "more_details": more_details,    # <-- FIXED
-                "raw": j,
+                "posted_date": posting_date,
+                "more_details": more_details
             }
+
 
             try:
                 conn.execute(job_postings.insert().values(**row))
@@ -325,7 +326,7 @@ def main():
 
     if all_jobs:
         insert_jobs(all_jobs)
-        delete_old()
+        # delete_old()
         print("✔ DONE")
     else:
         print("❌ No jobs extracted.")
