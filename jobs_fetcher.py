@@ -41,7 +41,7 @@ def get_jobs():
     # 1. Execute the main job postings query
     cur.execute("""
         SELECT id, logo_link, job_title, batch, location,
-               qualification, salary, apply_link, posted_date, more_details raw
+               qualification, salary, apply_link, posted_date, more_details, company_name
         FROM job_postings
         ORDER BY posted_date DESC
         LIMIT %s OFFSET %s

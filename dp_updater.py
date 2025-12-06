@@ -133,7 +133,7 @@ Now extract from:
 # ----------------------------------------
 # CHUNK READER
 # ----------------------------------------
-def read_chunks(path, lines_per_chunk=100):
+def read_chunks(path, lines_per_chunk=20):
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
@@ -176,10 +176,13 @@ def ask_groq(text):
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-70b",
-            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "Return ONLY valid JSON array. No text, no commentary."},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.0,
-            max_tokens=6000,
+            max_tokens=100000,
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -295,7 +298,7 @@ def main():
         print("all_messages.txt not found.")
         return
 
-    chunks = read_chunks(ALL_MESSAGES_PATH, lines_per_chunk=100)
+    chunks = read_chunks(ALL_MESSAGES_PATH, lines_per_chunk=20)
     print(f"Total chunks: {len(chunks)}")
 
     all_jobs = []
