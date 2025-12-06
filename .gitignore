@@ -7,3 +7,33 @@ venv/
 .venv/
 __pycache__/
 *.pyc
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+cron.log
+test_cron.log
+
+# Session / Generated files
+*.session
+*.session-journal
+*.sqlite
+*.db
+
+# Editor folders
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+*.swp
+*.swo
+
+# Other unwanted
+*.zip
+*.bak
+*.tmp
