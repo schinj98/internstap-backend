@@ -3,3 +3,7 @@ config.env
 *.env
 scraped_data
 groups
+venv/
+.venv/
+__pycache__/
+*.pyc
