@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 from groq import Groq
 import requests
+import urllib.parse
 
 # ------------------------- 
 # LOAD CONFIG.ENV
@@ -27,6 +28,73 @@ ALL_MESSAGES_PATH = os.getenv("ALL_MESSAGES_PATH", "./all_messages.txt")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 client = Groq(api_key=GROQ_API_KEY)
+
+
+
+def ddg_token(query):
+    try:
+        url = "https://duckduckgo.com/?q=" + urllib.parse.quote(query)
+        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        token = re.search(r"vqd=([\d-]+)", res.text)
+        if token:
+            return token.group(1)
+    except:
+        return None
+
+def fetch_logo(company_name):
+    if not company_name:
+        return ""
+
+    # -------------------------
+    # DuckDuckGo (BEST + FREE)
+    # -------------------------
+    try:
+        query = f"{company_name} official logo"
+        vqd = ddg_token(query)
+
+        if vqd:
+            url = (
+                f"https://duckduckgo.com/i.js"
+                f"?l=us-en&o=json&q={urllib.parse.quote(query)}&vqd={vqd}"
+            )
+            headers = {"User-Agent": "Mozilla/5.0"}
+            res = requests.get(url, headers=headers, timeout=10)
+
+            if res.status_code == 200:
+                data = res.json()
+                if "results" in data and len(data["results"]) > 0:
+                    return data["results"][0]["image"]
+    except:
+        pass
+
+    # -------------------------
+    # Wikipedia fallback
+    # -------------------------
+    try:
+        wiki_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{company_name}"
+        res = requests.get(wiki_url, timeout=10).json()
+
+        if "thumbnail" in res:
+            return res["thumbnail"]["source"]
+        if "originalimage" in res:
+            return res["originalimage"]["source"]
+    except:
+        pass
+
+    # -------------------------
+    # Clearbit fallback
+    # -------------------------
+    try:
+        domain_guess = company_name.lower().replace(" ", "") + ".com"
+        clearbit_url = f"https://logo.clearbit.com/{domain_guess}"
+        check = requests.get(clearbit_url)
+
+        if check.status_code == 200:
+            return clearbit_url
+    except:
+        pass
+
+    return ""
 
 # -------------------------
 # DATABASE SCHEMA
@@ -75,7 +143,7 @@ Each JSON object MUST contain:
 - more_details
 
 IMPORTANT LOGO RULE:
-- Find the best possible company logo URL by finding company logo on google.
+- Find the best possible company logo URL by *simulating a Google search mentally*.
 - or return "" if hard to find
 
 Rules:
@@ -100,7 +168,7 @@ Return STRICT JSON array like:
     "qualification": "B.Tech / BCA / any Stream",
     "salary": "INR 10-20 LPA",
     "apply_link": "https://google.com/careers/job",
-    "logo_url": "https://.../logo.png",
+    "logo_url": "https://logo.clearbit.com/google.com",
     "more_details": "Google is well known software company and most of its reviews are positive. It hires freshers as well experienced. The required skills for this specific job, eligibility, etc."
   }}
 ]
@@ -157,7 +225,12 @@ def insert_jobs(jobs: list):
     try:
         for j in jobs:
             # Extract fields
-            logo = j.get("logo_url", "")
+            company = j.get("company_name", "")
+            logo = fetch_logo(company)
+
+            if not logo:
+                logo = j.get("logo_url", "")  # fallback from AI
+
             apply_link = j.get("apply_link", "")
             more_details = j.get("more_details", "")
             
