@@ -112,7 +112,7 @@ Now extract from:
 # ----------------------------------------
 # CHUNK READER
 # ----------------------------------------
-def read_chunks(path, lines_per_chunk=50):
+def read_chunks(path, lines_per_chunk=10):
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
     
@@ -247,7 +247,7 @@ def main():
         print("all_messages.txt not found.")
         return
     
-    chunks = read_chunks(ALL_MESSAGES_PATH, lines_per_chunk=50)
+    chunks = read_chunks(ALL_MESSAGES_PATH, lines_per_chunk=10)
     print(f"Total chunks: {len(chunks)}")
     
     all_jobs = []
