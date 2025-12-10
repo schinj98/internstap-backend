@@ -8,7 +8,7 @@ load_dotenv("config.env")
 
 app = Flask(__name__)
 
-# ---- Load allowed origins from config.env ----
+# ---- Load allamaowed origins from config.env ----
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 
