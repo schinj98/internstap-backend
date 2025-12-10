@@ -75,7 +75,7 @@ Each JSON object MUST contain:
 - more_details
 
 IMPORTANT LOGO RULE:
-- Find the best possible company logo URL by *simulating a Google search mentally*.
+- Find the best possible company logo URL by finding company logo on google.
 - or return "" if hard to find
 
 Rules:
@@ -100,7 +100,7 @@ Return STRICT JSON array like:
     "qualification": "B.Tech / BCA / any Stream",
     "salary": "INR 10-20 LPA",
     "apply_link": "https://google.com/careers/job",
-    "logo_url": "https://logo.clearbit.com/google.com",
+    "logo_url": "https://.../logo.png",
     "more_details": "Google is well known software company and most of its reviews are positive. It hires freshers as well experienced. The required skills for this specific job, eligibility, etc."
   }}
 ]
